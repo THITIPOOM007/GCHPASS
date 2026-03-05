@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Assessment {
+  id                 String  @id @default(cuid())
+  orgType            String  @default("สสอ.")
+  district           String  @unique
+  date               String
+  assessorName1      String
+  assessorName2      String?
+  agencyHead         String
+  agencyHeadPosition String
+
+  // Scores
+  totalScore    Float
+  kpiA          Float
+  kpiB          Float
+  kpiPercentage Float
+  kpiLevel      Int
+
+  // Detailed Data (Stored as JSON strings)
+  scores   String // "{ 'dimension1': 2, ... }"
+  evidence String // "{ 'dimension1_crit1': '...', ... }"
+  images   String @default("{}") // "{ 'dimension1': 'data:image/jpeg;base64,...' }"
+
+  // Checklist & Flags
+  sla10        Boolean @default(false)
+  sla30        Boolean @default(false)
+  sla60        Boolean @default(false)
+  verifyDoc    Boolean @default(false)
+  verifySystem Boolean @default(false)
+  verifyRandom Boolean @default(false)
+  randomCount  String?
+
+  // Conclusion
+  comments     String?
+  signAssessor String?
+  signAssessee String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
