@@ -7,6 +7,7 @@ import {
 import { SISAKET_DISTRICTS } from "@/lib/gchp-data";
 import { getAssessmentsSummary } from "@/app/actions/assessment";
 import ResetButton from "@/components/ResetButton";
+import ManualButton from "@/components/ManualButton";
 
 const LEVEL_META = [
     { label: "ยังไม่ประเมิน", color: "bg-slate-100 text-slate-500 border-slate-200" },
@@ -84,14 +85,15 @@ export default async function DashboardPage() {
                                 กำหนดการ: 23–30 มีนาคม 2569 | เป้าหมาย 22 อำเภอ
                             </p>
                         </div>
-                        <div className="ml-auto hidden sm:block">
+                        <div className="ml-auto flex flex-col items-stretch hidden sm:flex space-y-2">
                             <Link
                                 href="/assessment"
-                                className="flex items-center gap-2 bg-white text-sky-700 font-bold px-5 py-3 rounded-xl hover:bg-sky-50 transition-colors shadow-lg"
+                                className="flex items-center justify-center gap-2 bg-white text-sky-700 font-bold px-5 py-3 rounded-xl hover:bg-sky-50 transition-colors shadow-lg"
                             >
                                 <ClipboardCheck className="w-5 h-5" />
                                 เริ่มตรวจประเมิน
                             </Link>
+                            <ManualButton />
                         </div>
                     </div>
                 </div>
