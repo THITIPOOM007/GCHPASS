@@ -17,7 +17,8 @@ export default async function ReportPage({ params }: { params: Promise<{ distric
     const total = calculateTotalGCHP(scores);
     const kpiPct = calculateKPI(d.kpiA, d.kpiB);
     const lv = determineLevel(kpiPct);
-    const org = `${d.orgType || "สสอ."}${d.district}`;
+    const org = `${d.orgType || "สสอ."}${d.orgType === "รพ." && d.district === "เมืองศรีสะเกษ" ? "ศรีสะเกษ" : d.district}`;
+
 
     const lvColor = lv.level >= 4 ? "#059669" : lv.level === 3 ? "#7c3aed" : lv.level === 2 ? "#d97706" : "#dc2626";
     const totColor = total >= 80 ? "#059669" : total >= 60 ? "#d97706" : "#dc2626";

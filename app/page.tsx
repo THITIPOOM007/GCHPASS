@@ -1,10 +1,12 @@
 import Link from "next/link";
 import {
-    ClipboardCheck, MapPin, BarChart3, Users, TrendingUp,
+    ClipboardCheck, MapPin, Users, TrendingUp,
     ChevronRight, Star, CheckCircle2, Clock, AlertCircle, FileText,
+    Award, Target,
 } from "lucide-react";
 import { SISAKET_DISTRICTS } from "@/lib/gchp-data";
 import { getAssessmentsSummary } from "@/app/actions/assessment";
+import ResetButton from "@/components/ResetButton";
 
 const LEVEL_META = [
     { label: "ยังไม่ประเมิน", color: "bg-slate-100 text-slate-500 border-slate-200" },
@@ -15,25 +17,47 @@ const LEVEL_META = [
     { label: "ระดับ 5 ⭐", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
 ];
 
+const LEVEL_BAR = [
+    { level: 5, label: "ระดับ 5", color: "bg-emerald-500", textColor: "text-emerald-700" },
+    { level: 4, label: "ระดับ 4", color: "bg-sky-500", textColor: "text-sky-700" },
+    { level: 3, label: "ระดับ 3", color: "bg-blue-500", textColor: "text-blue-700" },
+    { level: 2, label: "ระดับ 2", color: "bg-amber-500", textColor: "text-amber-700" },
+    { level: 1, label: "ระดับ 1", color: "bg-red-500", textColor: "text-red-700" },
+];
+
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
     const result = await getAssessmentsSummary();
-    const summaryMap: Record<string, { score: number; kpi: number; level: number }> = {};
+    const summaryMap: Record<string, { score: number; kpi: number; level: number; orgType: string }> = {};
     if (result.success) {
         for (const a of result.data) {
             summaryMap[a.district] = {
                 score: a.totalScore,
                 kpi: a.kpiPercentage,
                 level: a.kpiLevel,
+                orgType: a.orgType,
             };
         }
     }
 
     const completedCount = Object.keys(summaryMap).length;
+    const completed = Object.values(summaryMap);
+
     const avgScore = completedCount > 0
-        ? Object.values(summaryMap).reduce((sum, s) => sum + s.score, 0) / completedCount
+        ? completed.reduce((sum, s) => sum + s.score, 0) / completedCount
         : 0;
+
+    const avgKPI = completedCount > 0
+        ? completed.reduce((sum, s) => sum + s.kpi, 0) / completedCount
+        : 0;
+
+    // Level distribution
+    const levelDist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    completed.forEach((s) => { levelDist[s.level] = (levelDist[s.level] ?? 0) + 1; });
+
+    // Provincial KPI level (aggregate)
+    const provinceKPILevel = avgKPI >= 100 ? 5 : avgKPI >= 95 ? 4 : avgKPI >= 91 ? 3 : avgKPI >= 80 ? 2 : avgKPI > 0 ? 1 : 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-emerald-50">
@@ -75,12 +99,116 @@ export default async function DashboardPage() {
 
             <main className="max-w-6xl mx-auto px-4 py-6">
                 {/* Summary Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     <StatCard icon={<MapPin className="w-5 h-5 text-sky-600" />} label="อำเภอเป้าหมาย" value="22" unit="อำเภอ" color="sky" />
                     <StatCard icon={<CheckCircle2 className="w-5 h-5 text-emerald-600" />} label="ประเมินแล้ว" value={completedCount.toString()} unit="อำเภอ" color="emerald" />
                     <StatCard icon={<Clock className="w-5 h-5 text-amber-600" />} label="รอดำเนินการ" value={(22 - completedCount).toString()} unit="อำเภอ" color="amber" />
                     <StatCard icon={<Star className="w-5 h-5 text-purple-600" />} label="คะแนนเฉลี่ย" value={completedCount > 0 ? avgScore.toFixed(1) : "—"} unit="คะแนน" color="purple" />
                 </div>
+
+                {/* ===== PROVINCIAL KPI SUMMARY ===== */}
+                {completedCount > 0 && (
+                    <div className="mb-6 rounded-3xl overflow-hidden shadow-lg border border-slate-200/50">
+                        {/* Header gradient */}
+                        <div className="bg-gradient-to-r from-indigo-700 via-sky-700 to-emerald-700 px-6 py-5 text-white">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                                    <Award className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold">KPI รวมภาพจังหวัดศรีสะเกษ</h2>
+                                    <p className="text-sky-200 text-xs">ภาพรวมผลการประเมินทุกอำเภอที่ดำเนินการแล้ว ({completedCount} อำเภอ)</p>
+                                </div>
+                            </div>
+
+                            {/* Big KPI numbers */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <div className="bg-white/15 backdrop-blur rounded-2xl p-4 text-center">
+                                    <p className="text-white/70 text-xs mb-1">KPI เฉลี่ยจังหวัด</p>
+                                    <p className="text-4xl font-black">{avgKPI.toFixed(1)}<span className="text-xl font-bold text-white/70">%</span></p>
+                                    <p className="text-white/60 text-xs mt-1">
+                                        {provinceKPILevel >= 5 ? "🏆 บรรลุเป้าหมาย" : provinceKPILevel >= 4 ? "⭐ ดีมาก" : provinceKPILevel >= 3 ? "✅ ดี" : provinceKPILevel >= 2 ? "⚠️ พอใช้" : "❗ ต้องปรับปรุง"}
+                                    </p>
+                                </div>
+                                <div className="bg-white/15 backdrop-blur rounded-2xl p-4 text-center">
+                                    <p className="text-white/70 text-xs mb-1">คะแนน GCHP เฉลี่ย</p>
+                                    <p className="text-4xl font-black">{avgScore.toFixed(1)}<span className="text-xl font-bold text-white/70">/100</span></p>
+                                    <p className="text-white/60 text-xs mt-1">เฉลี่ยทุกอำเภอที่ตรวจแล้ว</p>
+                                </div>
+                                <div className="bg-white/15 backdrop-blur rounded-2xl p-4 text-center col-span-2 sm:col-span-1">
+                                    <p className="text-white/70 text-xs mb-1">ความคืบหน้า</p>
+                                    <p className="text-4xl font-black">{Math.round((completedCount / 22) * 100)}<span className="text-xl font-bold text-white/70">%</span></p>
+                                    <p className="text-white/60 text-xs mt-1">{completedCount} จาก 22 อำเภอ</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Level distribution */}
+                        <div className="bg-white px-6 py-5">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Target className="w-4 h-4 text-slate-500" />
+                                <h3 className="font-bold text-slate-700 text-sm">การกระจายระดับ KPI รายอำเภอ</h3>
+                                <span className="ml-auto text-xs text-slate-400">{completedCount} อำเภอที่ประเมินแล้ว</span>
+                            </div>
+                            <div className="space-y-2.5">
+                                {LEVEL_BAR.map((lb) => {
+                                    const count = levelDist[lb.level] ?? 0;
+                                    const pct = completedCount > 0 ? (count / completedCount) * 100 : 0;
+                                    const kpiLabel = lb.level === 5 ? "100%" : lb.level === 4 ? "95–99%" : lb.level === 3 ? "91–94%" : lb.level === 2 ? "80–90%" : "<80%";
+                                    return (
+                                        <div key={lb.level} className="flex items-center gap-3">
+                                            <div className="w-16 text-xs font-bold text-slate-600 flex-shrink-0">{lb.label}</div>
+                                            <div className="flex-1 relative">
+                                                <div className="h-7 bg-slate-100 rounded-lg overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${lb.color} rounded-lg transition-all duration-700 flex items-center`}
+                                                        style={{ width: `${Math.max(pct, count > 0 ? 4 : 0)}%` }}
+                                                    >
+                                                        {count > 0 && (
+                                                            <span className="text-white text-xs font-bold px-2">{count} อำเภอ</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="w-16 text-right flex-shrink-0">
+                                                <span className={`text-xs font-semibold ${lb.textColor}`}>{kpiLabel}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {/* Not yet assessed */}
+                                {(22 - completedCount) > 0 && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-16 text-xs font-bold text-slate-400 flex-shrink-0">ยังไม่ประเมิน</div>
+                                        <div className="flex-1 relative">
+                                            <div className="h-7 bg-slate-100 rounded-lg overflow-hidden">
+                                                <div
+                                                    className="h-full bg-slate-300 rounded-lg transition-all duration-700 flex items-center"
+                                                    style={{ width: `${((22 - completedCount) / 22) * 100}%` }}
+                                                >
+                                                    <span className="text-white text-xs font-bold px-2">{22 - completedCount} อำเภอ</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="w-16 text-right flex-shrink-0">
+                                            <span className="text-xs font-semibold text-slate-400">รอประเมิน</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Level 5 highlight */}
+                            {(levelDist[5] ?? 0) > 0 && (
+                                <div className="mt-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+                                    <span className="text-xl">🏆</span>
+                                    <p className="text-sm font-semibold text-emerald-800">
+                                        มี <span className="text-emerald-600 font-extrabold">{levelDist[5]} อำเภอ</span> ที่บรรลุ KPI 100% (ระดับ 5)
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Section title */}
                 <div className="flex items-center justify-between mb-4">
@@ -152,16 +280,19 @@ export default async function DashboardPage() {
                                         )}
                                     </div>
                                 </Link>
-                                {/* PDF Button row — only for completed */}
+                                {/* Action buttons row — only for completed */}
                                 {completed && (
-                                    <Link
-                                        href={`/report/${encodeURIComponent(district)}`}
-                                        target="_blank"
-                                        className="mt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 px-3 py-2 rounded-xl w-full transition"
-                                    >
-                                        <FileText className="w-3.5 h-3.5" />
-                                        ดูรายงาน / พิมพ์ PDF
-                                    </Link>
+                                    <div className="flex gap-2 mt-1">
+                                        <Link
+                                            href={`/report/${encodeURIComponent(district)}`}
+                                            target="_blank"
+                                            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 px-3 py-2 rounded-xl transition"
+                                        >
+                                            <FileText className="w-3.5 h-3.5" />
+                                            ดูรายงาน / PDF
+                                        </Link>
+                                        <ResetButton district={district} orgType={summaryMap[district]?.orgType ?? "สสอ."} />
+                                    </div>
                                 )}
                             </div>
                         );

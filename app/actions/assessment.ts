@@ -119,6 +119,7 @@ export async function getAssessmentsSummary() {
         const assessments = await prisma.assessment.findMany({
             select: {
                 district: true,
+                orgType: true,
                 totalScore: true,
                 kpiPercentage: true,
                 kpiLevel: true,
@@ -156,3 +157,18 @@ export async function getAssessmentByDistrict(district: string) {
         return { success: false, data: null };
     }
 }
+
+export async function deleteAssessment(district: string) {
+    try {
+        await prisma.assessment.delete({
+            where: { district },
+        });
+        revalidatePath("/", "page");
+        revalidatePath("/assessment", "page");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to delete assessment for district:", district, error);
+        return { success: false };
+    }
+}
+

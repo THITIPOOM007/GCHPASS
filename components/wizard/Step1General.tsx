@@ -4,6 +4,11 @@ import { AssessmentData } from "@/app/assessment/page";
 import { SISAKET_DISTRICTS } from "@/lib/gchp-data";
 import { CalendarDays, MapPin, User, Users } from "lucide-react";
 
+// แสดงชื่อพิเศษเฉพาะตอนเลือก รพ. (ไม่แก้ key ในฐานข้อมูล)
+const HOSPITAL_DISPLAY_NAME: Record<string, string> = {
+    "เมืองศรีสะเกษ": "ศรีสะเกษ",
+};
+
 interface Props {
     data: AssessmentData;
     update: (patch: Partial<AssessmentData>) => void;
@@ -82,11 +87,16 @@ export default function Step1General({ data, update }: Props) {
                         className="w-full sm:w-80 border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 outline-none transition bg-white"
                     >
                         <option value="">— เลือกอำเภอ —</option>
-                        {SISAKET_DISTRICTS.map((d) => (
-                            <option key={d} value={d}>
-                                {data.orgType}{d}
-                            </option>
-                        ))}
+                        {SISAKET_DISTRICTS.map((d) => {
+                            const displayName = data.orgType === "รพ."
+                                ? (HOSPITAL_DISPLAY_NAME[d] ?? d)
+                                : d;
+                            return (
+                                <option key={d} value={d}>
+                                    {data.orgType}{displayName}
+                                </option>
+                            );
+                        })}
                     </select>
                 </div>
 
